@@ -32,13 +32,24 @@ class _MainScreenState extends State<MainScreen> {
     String title;
 
     if (selectedIndex == 0) {
-      currentPage = HomePage(profile: profile);
+      currentPage = HomePage(
+        profile: profile,
+      );
+
       title = 'Inicio';
     } else if (selectedIndex == 1) {
-      currentPage = PlaylistPage(profile: profile);
+      currentPage = PlaylistPage(
+        profile: profile,
+      );
+
       title = 'Tu playlist';
     } else {
-      currentPage = ProfilePage(profile: profile);
+      currentPage = ProfilePage(
+        profile: profile,
+        onEditProfile: () {},
+        onLogout: () {},
+      );
+
       title = 'Perfil';
     }
 

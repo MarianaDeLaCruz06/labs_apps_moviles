@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Page of the Playlist tab. TODO part 6.
+import '../models/music_profile.dart';
+
 class PlaylistPage extends StatelessWidget {
-  const PlaylistPage({super.key});
+  const PlaylistPage({
+    super.key,
+    required this.profile,
+  });
+
+  final MusicProfile profile;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('TODO part 6'));
+    return const Center(
+      child: Text('TODO part 6'),
+    );
   }
 }

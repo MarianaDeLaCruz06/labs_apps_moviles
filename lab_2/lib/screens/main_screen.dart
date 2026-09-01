@@ -17,16 +17,44 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int selectedIndex = 0;
 
+  MusicProfile? editedProfile;
+
   void changeTab(int index) {
     setState(() {
       selectedIndex = index;
     });
   }
 
+  Future<void> editProfile(MusicProfile profile) async {
+    final result = await Navigator.pushNamed(
+      context,
+      '/edit-profile',
+      arguments: profile,
+    );
+
+    if (!mounted) return;
+
+    if (result != null) {
+      setState(() {
+        editedProfile = result as MusicProfile;
+      });
+    }
+  }
+
+  void logout() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/',
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profile =
+    final originalProfile =
         ModalRoute.of(context)!.settings.arguments as MusicProfile;
+
+    final profile = editedProfile ?? originalProfile;
 
     Widget currentPage;
     String title;
@@ -46,8 +74,10 @@ class _MainScreenState extends State<MainScreen> {
     } else {
       currentPage = ProfilePage(
         profile: profile,
-        onEditProfile: () {},
-        onLogout: () {},
+        onEditProfile: () {
+          editProfile(profile);
+        },
+        onLogout: logout,
       );
 
       title = 'Perfil';

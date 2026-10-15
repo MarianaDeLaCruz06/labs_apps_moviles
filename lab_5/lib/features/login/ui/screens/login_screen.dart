@@ -35,7 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
-    Navigator.pushReplacementNamed(context, '/home');
+    setState(() {
+      _isLoading = false;
+      _errorMessage =
+          'El inicio de sesión estará disponible en la Parte 2 del laboratorio.';
+    });
   }
 
   @override

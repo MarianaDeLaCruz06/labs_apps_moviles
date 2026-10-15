@@ -18,8 +18,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://pmijmrkaucdwadmnnvbo.supabase.co',
-    publishableKey: 'sb_publishable_8tS9o_mjkvKA4z9WUvRjCg_01oNcv6y',
+    url: 'https://qukgjzpycduatmpmxgkj.supabase.co',
+    publishableKey: 'sb_publishable_uov7ndVQgwqzeE2nxepzWw_tuSK9wtg',
   );
 
   runApp(const App());
@@ -52,11 +52,34 @@ class App extends StatelessWidget {
           child: const RegisterScreen(),
         ),
         '/home': (context) {
-          final profile = ModalRoute.of(context)!.settings.arguments as Profile;
+          final arguments = ModalRoute.of(context)?.settings.arguments;
 
-          return HomeScreen(
-            username: profile.username,
-            fullName: profile.fullName,
+          if (arguments is Profile) {
+            return HomeScreen(
+              username: arguments.username,
+              fullName: arguments.fullName,
+            );
+          }
+
+          return Scaffold(
+            appBar: AppBar(title: const Text('Perfil no disponible')),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('No hay un perfil disponible.'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                      (route) => false,
+                    ),
+                    child: const Text('Volver a iniciar sesión'),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       },

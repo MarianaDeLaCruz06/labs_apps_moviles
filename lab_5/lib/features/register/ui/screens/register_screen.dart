@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:moviles_auth/components/auth_form_card.dart';
 import 'package:moviles_auth/components/error_message.dart';
 import 'package:moviles_auth/components/primary_button.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_bloc.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_event.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_state.dart';
-import 'package:moviles_auth/theme/app_theme.dart';
 
 /// Sign up form with username, full name, email and password.
 class RegisterScreen extends StatefulWidget {
@@ -77,7 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(title: const Text('Crear cuenta')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
           child: BlocListener<RegisterBloc, RegisterState>(
             listener: (context, state) {
               if (state.status == RegisterStatus.success) {
@@ -104,86 +104,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ? state.errorMessage
         : _validationErrorMessage;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Crea tu cuenta',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+    return AuthFormCard(
+      icon: Icons.person_add_alt_1_rounded,
+      title: 'Crea tu cuenta',
+      subtitle: 'Completa tus datos para registrarte',
+      child: Column(
+        children: [
+          TextField(
+            controller: _usernameController,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Nombre de usuario',
+              prefixIcon: Icon(Icons.alternate_email),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Completa tus datos para registrarte',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 32),
-        TextField(
-          controller: _usernameController,
-          autocorrect: false,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de usuario',
-            prefixIcon: Icon(Icons.alternate_email),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _fullNameController,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Nombre completo',
-            prefixIcon: Icon(Icons.person_outline),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: const InputDecoration(
-            labelText: 'Correo',
-            prefixIcon: Icon(Icons.mail_outline),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _passwordController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Contraseña',
-            prefixIcon: Icon(Icons.lock_outline),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _confirmPasswordController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Confirmar contraseña',
-            prefixIcon: Icon(Icons.lock_outline),
-          ),
-        ),
-        const SizedBox(height: 24),
-        if (errorMessage != null) ...[
-          ErrorMessage(message: errorMessage),
           const SizedBox(height: 16),
-        ],
-        PrimaryButton(
-          label: 'Registrarme',
-          isLoading: state.status == RegisterStatus.loading,
-          onPressed: _submit,
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton(
-            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-            child: const Text('¿Ya tienes cuenta? Inicia sesión'),
+          TextField(
+            controller: _fullNameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Nombre completo',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Correo',
+              prefixIcon: Icon(Icons.mail_outline),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Contraseña',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _confirmPasswordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Confirmar contraseña',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (errorMessage != null) ...[
+            ErrorMessage(message: errorMessage),
+            const SizedBox(height: 16),
+          ],
+          PrimaryButton(
+            label: 'Registrarme',
+            isLoading: state.status == RegisterStatus.loading,
+            onPressed: _submit,
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: () =>
+                  Navigator.pushReplacementNamed(context, '/login'),
+              child: const Text('¿Ya tienes cuenta? Inicia sesión'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

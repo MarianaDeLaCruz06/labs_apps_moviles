@@ -56,71 +56,123 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(title: const Text('Perfil')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Container(
-                width: 96,
-                height: 96,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  widget.fullName.isEmpty
-                      ? '?'
-                      : widget.fullName[0].toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.surface,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 18,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.secondary, AppColors.primary],
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.22),
+                          blurRadius: 28,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 76,
+                          height: 76,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.surface.withValues(alpha: 0.72),
+                              width: 3,
+                            ),
+                          ),
+                          child: Text(
+                            widget.fullName.isEmpty
+                                ? '?'
+                                : widget.fullName[0].toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.surface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.fullName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.surface,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '@${widget.username}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.surface.withValues(alpha: 0.86),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Información personal',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ProfileField(
+                    icon: Icons.alternate_email,
+                    label: 'Nombre de usuario',
+                    value: widget.username,
+                  ),
+                  const SizedBox(height: 8),
+                  ProfileField(
+                    icon: Icons.person_outline,
+                    label: 'Nombre completo',
+                    value: widget.fullName,
+                  ),
+                  const SizedBox(height: 8),
+                  ProfileField(
+                    icon: Icons.mail_outline,
+                    label: 'Correo',
+                    value: widget.email,
+                  ),
+                  const SizedBox(height: 18),
+                  if (_errorMessage != null) ...[
+                    ErrorMessage(message: _errorMessage!),
+                    const SizedBox(height: 16),
+                  ],
+                  PrimaryButton(
+                    label: 'Cerrar sesión',
+                    isLoading: _isSigningOut,
+                    onPressed: _signOut,
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                widget.fullName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '@${widget.username}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 32),
-              ProfileField(
-                icon: Icons.alternate_email,
-                label: 'Nombre de usuario',
-                value: widget.username,
-              ),
-              const SizedBox(height: 12),
-              ProfileField(
-                icon: Icons.person_outline,
-                label: 'Nombre completo',
-                value: widget.fullName,
-              ),
-              const SizedBox(height: 12),
-              ProfileField(
-                icon: Icons.mail_outline,
-                label: 'Correo',
-                value: widget.email,
-              ),
-              const SizedBox(height: 32),
-              if (_errorMessage != null) ...[
-                ErrorMessage(message: _errorMessage!),
-                const SizedBox(height: 16),
-              ],
-              PrimaryButton(
-                label: 'Cerrar sesión',
-                isLoading: _isSigningOut,
-                onPressed: _signOut,
-              ),
-            ],
+            ),
           ),
         ),
       ),

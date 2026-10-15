@@ -86,6 +86,13 @@ class _FakeAuthRepository implements AuthRepository {
     calls.add('auth.signUp');
     return const AuthUser(id: 'auth-user-id', email: 'student@example.com');
   }
+
+  @override
+  Future<AuthUser> signIn({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() => throw UnimplementedError();
 }
 
 class _FakeProfileRepository implements ProfileRepository {
@@ -104,4 +111,7 @@ class _FakeProfileRepository implements ProfileRepository {
       throw StateError('profile insert failed');
     }
   }
+
+  @override
+  Future<Profile> getProfile(String id) => throw UnimplementedError();
 }

@@ -5,33 +5,36 @@ import 'package:moviles_auth/features/auth/domain/entities/auth_user.dart';
 import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
 import 'package:moviles_auth/features/auth/domain/repository/auth_repository.dart';
 import 'package:moviles_auth/features/auth/domain/repository/profile_repository.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:moviles_auth/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:moviles_auth/features/home/ui/screens/home_screen.dart';
 import 'package:moviles_auth/features/login/ui/screens/login_screen.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_bloc.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_bloc.dart';
 import 'package:moviles_auth/features/register/ui/screens/register_screen.dart';
 
 void main() {
-  testWidgets('sign in validates fields and reports that Part 2 is pending', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+  testWidgets('sign in validates required fields', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider(
+          create: (_) => LoginBloc(
+            signInUseCase: SignInUseCase(
+              _FakeAuthRepository(),
+              _FakeProfileRepository(),
+            ),
+          ),
+          child: const LoginScreen(),
+        ),
+      ),
+    );
     expect(find.text('Bienvenido de nuevo'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
     await tester.pump();
     expect(find.text('Escribe tu correo y tu contraseña'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).at(0), 'ana@icesi.edu.co');
-    await tester.enterText(find.byType(TextField).at(1), '123456');
-    await tester.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
-    await tester.pump();
-    expect(
-      find.text(
-        'El inicio de sesión estará disponible en la Parte 2 del laboratorio.',
-      ),
-      findsOneWidget,
-    );
     expect(find.byType(LoginScreen), findsOneWidget);
   });
 
@@ -56,6 +59,8 @@ void main() {
             return HomeScreen(
               username: profile.username,
               fullName: profile.fullName,
+              email: 'ana@icesi.edu.co',
+              signOutUseCase: SignOutUseCase(_FakeAuthRepository()),
             );
           },
         },
@@ -96,9 +101,19 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {
     return AuthUser(id: 'auth-user-id', email: email);
   }
+
+  @override
+  Future<AuthUser> signIn({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() => throw UnimplementedError();
 }
 
 class _FakeProfileRepository implements ProfileRepository {
   @override
   Future<void> createProfile(Profile profile) async {}
+
+  @override
+  Future<Profile> getProfile(String id) => throw UnimplementedError();
 }

@@ -6,8 +6,11 @@ import 'package:moviles_auth/features/auth/data/repository/profile_repository_im
 import 'package:moviles_auth/features/auth/data/source/supabase_auth_data_source.dart';
 import 'package:moviles_auth/features/auth/data/source/supabase_profile_data_source.dart';
 import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:moviles_auth/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:moviles_auth/features/home/ui/screens/home_screen.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_bloc.dart';
 import 'package:moviles_auth/features/login/ui/screens/login_screen.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_bloc.dart';
 import 'package:moviles_auth/features/register/ui/screens/register_screen.dart';
@@ -37,7 +40,19 @@ class App extends StatelessWidget {
       theme: buildTheme(),
       initialRoute: '/login',
       routes: {
-        '/login': (_) => const LoginScreen(),
+        '/login': (_) => BlocProvider(
+          create: (_) => LoginBloc(
+            signInUseCase: SignInUseCase(
+              AuthRepositoryImpl(
+                SupabaseAuthDataSource(Supabase.instance.client),
+              ),
+              ProfileRepositoryImpl(
+                SupabaseProfileDataSource(Supabase.instance.client),
+              ),
+            ),
+          ),
+          child: const LoginScreen(),
+        ),
         '/register': (_) => BlocProvider(
           create: (_) => RegisterBloc(
             signUpUseCase: SignUpUseCase(
@@ -53,12 +68,34 @@ class App extends StatelessWidget {
         ),
         '/home': (context) {
           final arguments = ModalRoute.of(context)?.settings.arguments;
+          final client = Supabase.instance.client;
+          final signOutUseCase = SignOutUseCase(
+            AuthRepositoryImpl(SupabaseAuthDataSource(client)),
+          );
+
+          if (arguments is SignInResult) {
+            return HomeScreen(
+              username: arguments.profile.username,
+              fullName: arguments.profile.fullName,
+              email: arguments.user.email,
+              signOutUseCase: signOutUseCase,
+            );
+          }
 
           if (arguments is Profile) {
-            return HomeScreen(
-              username: arguments.username,
-              fullName: arguments.fullName,
-            );
+            final currentUser = client.auth.currentUser;
+            final email = currentUser?.id == arguments.id
+                ? currentUser?.email
+                : null;
+
+            if (email != null) {
+              return HomeScreen(
+                username: arguments.username,
+                fullName: arguments.fullName,
+                email: email,
+                signOutUseCase: signOutUseCase,
+              );
+            }
           }
 
           return Scaffold(

@@ -1,24 +1,53 @@
 import 'package:flutter/material.dart';
 
+import 'package:moviles_auth/components/error_message.dart';
 import 'package:moviles_auth/components/primary_button.dart';
 import 'package:moviles_auth/components/profile_field.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
 
 /// Shows the profile of the signed in user and lets them sign out.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final String username;
   final String fullName;
   final String email;
+  final SignOutUseCase signOutUseCase;
 
   const HomeScreen({
     super.key,
     required this.username,
     required this.fullName,
-    this.email = 'correo@ejemplo.com',
+    required this.email,
+    required this.signOutUseCase,
   });
 
-  void _signOut(BuildContext context) {
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isSigningOut = false;
+  String? _errorMessage;
+
+  Future<void> _signOut() async {
+    if (_isSigningOut) return;
+
+    setState(() {
+      _isSigningOut = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await widget.signOutUseCase();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSigningOut = false;
+        _errorMessage = error.toString();
+      });
+    }
   }
 
   @override
@@ -39,7 +68,9 @@ class HomeScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Text(
-                  fullName.isEmpty ? '?' : fullName[0].toUpperCase(),
+                  widget.fullName.isEmpty
+                      ? '?'
+                      : widget.fullName[0].toUpperCase(),
                   style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.w700,
@@ -49,7 +80,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                fullName,
+                widget.fullName,
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -58,31 +89,36 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '@$username',
+                '@${widget.username}',
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 32),
               ProfileField(
                 icon: Icons.alternate_email,
                 label: 'Nombre de usuario',
-                value: username,
+                value: widget.username,
               ),
               const SizedBox(height: 12),
               ProfileField(
                 icon: Icons.person_outline,
                 label: 'Nombre completo',
-                value: fullName,
+                value: widget.fullName,
               ),
               const SizedBox(height: 12),
               ProfileField(
                 icon: Icons.mail_outline,
                 label: 'Correo',
-                value: email,
+                value: widget.email,
               ),
               const SizedBox(height: 32),
+              if (_errorMessage != null) ...[
+                ErrorMessage(message: _errorMessage!),
+                const SizedBox(height: 16),
+              ],
               PrimaryButton(
                 label: 'Cerrar sesión',
-                onPressed: () => _signOut(context),
+                isLoading: _isSigningOut,
+                onPressed: _signOut,
               ),
             ],
           ),

@@ -50,4 +50,33 @@ class SupabaseAuthDataSource {
 
     return AuthUser(id: user.id, email: userEmail);
   }
+
+  Future<AuthUser> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+
+    final user = response.user;
+    final session = response.session;
+    if (user == null || session == null) {
+      throw StateError(
+        'Supabase Auth did not establish an authenticated session.',
+      );
+    }
+
+    final userEmail = user.email;
+    if (userEmail == null) {
+      throw StateError('The user returned by Supabase Auth has no email.');
+    }
+
+    return AuthUser(id: user.id, email: userEmail);
+  }
+
+  Future<void> signOut() {
+    return _client.auth.signOut();
+  }
 }

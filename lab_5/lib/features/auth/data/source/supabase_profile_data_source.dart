@@ -35,4 +35,25 @@ class SupabaseProfileDataSource {
       rethrow;
     }
   }
+
+  Future<Profile> getProfile(String id) async {
+    try {
+      final data = await _client
+          .from('profiles')
+          .select()
+          .eq('id', id)
+          .single();
+
+      return Profile(
+        id: data['id'] as String,
+        username: data['username'] as String,
+        fullName: data['full_name'] as String,
+      );
+    } on PostgrestException catch (error) {
+      if (error.code == 'PGRST116') {
+        throw StateError('No profile was found for the authenticated user.');
+      }
+      rethrow;
+    }
+  }
 }

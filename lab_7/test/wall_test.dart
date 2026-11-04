@@ -210,6 +210,7 @@ void main() {
             isLoading: false,
             onLoadMore: () => more++,
             onLike: (post) => liked = post,
+            onDelete: (post) {},
           ),
         ),
       ),

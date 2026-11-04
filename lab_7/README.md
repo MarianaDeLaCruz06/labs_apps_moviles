@@ -1,68 +1,158 @@
 # Laboratorio 7 · Fotos en el muro
 
-Punto de partida del **Laboratorio 7**: el muro del Laboratorio 6, ya resuelto, al que le faltan las fotos. La guía paso a paso está en el visor del curso, en la lección *Laboratorio 7 · Fotos en el muro*.
+**Desarrollo de Aplicaciones Móviles - Flutter y Supabase**
 
-- **Parte 1 · Foto de perfil.** Subir la foto, guardar su path en `profiles` y mostrarla en el perfil y junto a cada post.
-- **Parte 2 · Posts con imagen (avanzada).** El composer adjunta una foto, la muestra antes de publicar y el muro la pinta bajo el texto.
+## Descripción
 
-Las fotos de perfil van en un **bucket público**, `avatars`: se muestran con una URL fija. Las de los posts van en un **bucket privado**, `post-images`: solo quien inició sesión las ve, a través de URLs firmadas.
+Este proyecto corresponde al Laboratorio 7, desarrollado a partir del proyecto base proporcionado por el profesor, que incluye las funcionalidades del Laboratorio 6 y la interfaz inicial para el manejo de fotografías.
 
-## Cómo correrlo
+El objetivo es integrar la selección, carga, almacenamiento y visualización de imágenes en una aplicación social utilizando Flutter, BLoC y Supabase.
 
-1. Pon la `Project URL` y la `publishable key` de **tu** proyecto de Supabase en `lib/main.dart`.
-2. Conecta la carpeta con tu proyecto de Supabase, el mismo del Laboratorio 6:
+El laboratorio se divide en dos partes:
+
+- **Parte 1 - Foto de perfil:** permite seleccionar una fotografía desde la galería, subirla a Supabase Storage, actualizar el perfil y mostrarla junto a las publicaciones del usuario.
+- **Parte 2 - Publicaciones con imágenes:** permite adjuntar una fotografía, visualizarla antes de publicar y mostrarla en el muro junto al texto de la publicación.
+
+## Funcionalidades implementadas
+
+### Autenticación y perfiles
+
+- Registro de usuarios mediante Supabase Auth.
+- Inicio y cierre de sesión.
+- Consulta de la información del perfil.
+- Selección y actualización de la fotografía de perfil.
+- Visualización de la fotografía del autor en sus publicaciones.
+- Visualización de la inicial del nombre cuando no existe una fotografía.
+
+### Publicaciones
+
+- Creación de publicaciones con texto.
+- Creación de publicaciones con imágenes.
+- Creación de publicaciones únicamente con imágenes.
+- Vista previa de la fotografía antes de publicar.
+- Opción para quitar una fotografía seleccionada.
+- Muro de publicaciones con paginación.
+- Visualización de publicaciones recientes en el perfil.
+- Sistema de me gusta.
+- Validación del máximo de 280 caracteres.
+
+### Almacenamiento de imágenes
+
+Se utilizan dos buckets de Supabase Storage:
+
+| Bucket | Acceso | Uso |
+|---|---|---|
+| `avatars` | Público | Fotografías de perfil |
+| `post-images` | Privado | Fotografías de publicaciones |
+
+Ambos buckets tienen un límite de 2 MiB por archivo y admiten JPEG, PNG y WebP.
+
+Las fotografías de perfil se muestran mediante URLs públicas. Las imágenes de las publicaciones se consultan mediante URLs firmadas con una duración de 3600 segundos.
+
+## Tecnologías utilizadas
+
+- Flutter y Dart.
+- Supabase Authentication.
+- Supabase Database (PostgreSQL).
+- Supabase Storage.
+- Flutter BLoC para la gestión de eventos y estados.
+- `image_picker` para seleccionar fotografías.
+- `uuid` para generar nombres únicos de archivos.
+
+## Arquitectura
+
+La aplicación mantiene una separación de responsabilidades mediante las capas de presentación, dominio y datos.
+
+**Presentación:** pantallas, componentes, eventos, estados y BLoC.
+
+**Dominio:** entidades, contratos de repositorios y casos de uso.
+
+**Datos:** implementaciones de repositorios y fuentes de datos que se comunican con Supabase y la galería del dispositivo.
+
+Los casos de uso coordinan las operaciones sin depender directamente de los widgets de Flutter.
+
+## Configuración de Supabase
+
+La aplicación utiliza el proyecto de Supabase configurado para los laboratorios.
+
+Los valores de conexión se encuentran en `lib/main.dart`:
+
+- Project URL.
+- Publishable key.
+
+La publishable key es una clave pública de cliente. No se requiere ninguna clave `service_role` ni clave secreta para ejecutar la aplicación.
+
+La base de datos debe contener las tablas:
+
+- `profiles`
+- `posts`
+- `likes`
+
+Además de las columnas `avatar_path` en `profiles` e `image_path` en `posts`.
+
+Las políticas de Row Level Security (RLS) y Storage deben permitir las operaciones correspondientes a los usuarios autenticados.
+
+Las migraciones SQL del laboratorio se encuentran en `supabase/migrations/`. Para reconstruir la base de datos en otro proyecto también se necesita el esquema previo de los laboratorios 5 y 6 y sus políticas correspondientes.
+
+## Cómo ejecutar la aplicación
+
+### Requisitos
+
+- Flutter SDK instalado.
+- Dart SDK.
+- Visual Studio Code o un entorno compatible con Flutter.
+- Google Chrome o un emulador Android.
+- Conexión a Internet.
+- Acceso al proyecto Supabase configurado.
+
+### Ejecución
+
+Desde la raíz del repositorio:
 
 ```bash
-npx supabase init
-npx supabase link --project-ref TU_IDENTIFICADOR
-npx supabase migration fetch --linked
+cd lab_7
+flutter pub get
+flutter analyze
+flutter run -d chrome
 ```
 
-   Reemplaza el `config.toml` que crea `init` por el del curso, y sigue los pasos del laboratorio para los buckets y las migraciones nuevas.
-3. Corre la app:
+Para ejecutar la aplicación en Android, iniciar un emulador y consultar los dispositivos disponibles:
 
 ```bash
-flutter pub get
+flutter devices
 flutter run
 ```
 
-## Qué ya funciona
+Seleccionar el dispositivo Android correspondiente.
 
-- **Todo el Laboratorio 6.** Registro, inicio de sesión, el muro paginado, los «me gusta» y publicar texto.
-- **Las dependencias y los permisos.** `image_picker` y `uuid` en el `pubspec.yaml`, los textos de permiso en `ios/Runner/Info.plist` y el permiso de archivos en los `entitlements` de macOS.
-- **Toda la interfaz.** `Avatar`, el botón de cámara de `ProfilePage`, el botón *Agregar foto*, la vista previa y *Quitar foto* de `ComposeScreen`, y la imagen de `PostCard`. Los dos botones de foto todavía no lanzan su evento: `() {}`.
-- **Las entidades y los contratos.** `PickedPhoto`, `Profile` con `avatarPath` y `avatarUrl`, `Post` con `authorAvatarUrl`, `imagePath` e `imageUrl`, y los contratos `AvatarRepository`, `ProfileRepository` y `PostRepository` completos.
-- **Los eventos y los estados.** `AvatarChangeRequested`, `ComposePhotoRequested`, `ComposePhotoRemoved`, `FeedState.avatarStatus` y `ComposeState.photo`, con sus `copyWith`.
+No es necesario ejecutar `supabase init` para utilizar el proyecto existente, ya que la configuración se encuentra incluida en la carpeta `supabase/`.
 
-Los métodos nuevos de cada capa ya existen con su firma, pero su cuerpo es `throw UnimplementedError()`. Los `on` nuevos de los Bloc solo imprimen el evento que reciben. Cuando conectes los botones, verás en la consola:
+## Pruebas funcionales
 
-```text
-FeedBloc recibió AvatarChangeRequested()
-ComposeBloc recibió ComposePhotoRequested()
-```
+El flujo principal permite:
 
-## Qué te toca
+1. Registrar un usuario o iniciar sesión.
+2. Consultar el perfil.
+3. Seleccionar y subir una fotografía de perfil.
+4. Visualizar la fotografía actualizada.
+5. Crear una publicación con texto e imagen.
+6. Crear una publicación únicamente con imagen.
+7. Consultar el muro y las publicaciones del perfil.
+8. Dar y quitar me gusta.
+9. Cerrar sesión.
 
-**Parte 1**
+## Consideraciones
 
-- `avatar/domain/usecases/change_avatar_usecase.dart`: `call`.
-- `avatar/data/source/device_photo_data_source.dart`: `pick`.
-- `avatar/data/source/supabase_avatar_data_source.dart`: `upload` con nombre aleatorio y `remove`.
-- `avatar/data/repository/avatar_repository_impl.dart`: los tres métodos, delegando.
-- `auth/data/source/supabase_profile_data_source.dart` y su `Impl`: `updateAvatarPath`, y la URL pública en `getProfile`.
-- `posts/data/source/supabase_post_data_source.dart`: `avatar_path` en el select y su URL pública en `_toPost`.
-- `home/ui/bloc/feed_bloc.dart`: el `on` de `AvatarChangeRequested`.
-- `home/ui/screens/home_screen.dart`: que `onChangePhoto` lance `AvatarChangeRequested`.
+- La aplicación necesita conectarse a un proyecto Supabase activo.
+- Las imágenes de los posts se almacenan en un bucket privado y requieren URLs firmadas para su visualización.
+- Los archivos almacenados en Supabase no forman parte del repositorio Git.
+- La eliminación de una publicación de la base de datos no elimina automáticamente su imagen de Storage.
+- La aplicación conserva la arquitectura y las funcionalidades solicitadas en el Laboratorio 7.
 
-**Parte 2**
+## Proyecto base
 
-- `posts/domain/usecases/pick_post_image_usecase.dart`: `call`.
-- `posts/domain/usecases/publish_post_usecase.dart`: subir la foto antes de crear el post.
-- `posts/data/source/supabase_post_image_data_source.dart`: `upload` y `signedUrl`.
-- `posts/data/repository/post_repository_impl.dart`: `pickImage`, `uploadImage` e `imageUrl`.
-- `posts/data/source/supabase_post_data_source.dart`: `image_path` en `create`, en el select y en `_toPost`.
-- `posts/domain/usecases/get_feed_usecase.dart` y `get_my_posts_usecase.dart`: completar cada post con la URL firmada de su imagen.
-- `compose/ui/bloc/compose_bloc.dart`: los `on` de la foto, y pasar `state.photo` al publicar.
-- `compose/ui/screens/compose_screen.dart`: que *Agregar foto* lance `ComposePhotoRequested`.
+Laboratorio 7 proporcionado por el profesor:
 
-`flutter test` comprueba que la interfaz lanza los eventos correctos.
+https://github.com/Domiciano/Apps262Lab7
+
+El desarrollo completa las funcionalidades propuestas en el laboratorio y contiene ajustes visuales en las pantallas de autenticación, perfil y publicaciones.

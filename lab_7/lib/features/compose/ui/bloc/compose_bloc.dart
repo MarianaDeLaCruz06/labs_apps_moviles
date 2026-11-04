@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:flutter/foundation.dart';
 import 'package:moviles_auth/features/compose/ui/bloc/compose_event.dart';
 import 'package:moviles_auth/features/compose/ui/bloc/compose_state.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/pick_post_image_usecase.dart';
@@ -32,6 +32,7 @@ class ComposeBloc extends Bloc<ComposeEvent, ComposeState> {
 
       emit(state.copyWith(status: ComposeStatus.initial, photo: photo));
     } on Exception catch (e) {
+      debugPrint('ERROR AL SELECCIONAR FOTO: $e');
       emit(
         state.copyWith(
           status: ComposeStatus.failure,
@@ -59,6 +60,7 @@ class ComposeBloc extends Bloc<ComposeEvent, ComposeState> {
 
       emit(state.copyWith(status: ComposeStatus.success));
     } on Exception catch (e) {
+      debugPrint('ERROR AL PUBLICAR: $e');
       emit(
         state.copyWith(
           status: ComposeStatus.failure,

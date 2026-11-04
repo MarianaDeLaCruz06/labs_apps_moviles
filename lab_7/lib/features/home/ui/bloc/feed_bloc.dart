@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moviles_auth/features/auth/domain/usecases/get_my_profile_usecase.dart';
 import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
@@ -116,6 +117,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
       add(FeedStarted());
     } on Exception catch (e) {
+      debugPrint('ERROR AL SUBIR AVATAR: $e');
       emit(
         state.copyWith(
           avatarStatus: AvatarStatus.failure,

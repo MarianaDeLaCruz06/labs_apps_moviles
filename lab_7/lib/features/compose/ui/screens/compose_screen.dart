@@ -47,11 +47,20 @@ class _ComposeScreenState extends State<ComposeScreen> {
     return Stack(
       children: [
         Container(
-          height: 200,
+          height: 280,
           width: double.infinity,
           clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-          child: Image.memory(photo.bytes, fit: BoxFit.cover),
+          decoration: BoxDecoration(
+            color: AppColors.lavender,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.border,
+            ),
+          ),
+          child: Image.memory(
+            photo.bytes,
+            fit: BoxFit.contain,
+          ),
         ),
         Positioned(
           top: 8,

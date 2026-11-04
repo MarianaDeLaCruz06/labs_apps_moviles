@@ -4,7 +4,7 @@ import 'package:moviles_auth/components/avatar.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
 
-/// Card of one post: author with photo, text, image, date and the heart with its counter.
+/// Card of one post: author, text, image, date and likes.
 class PostCard extends StatelessWidget {
   final Post post;
   final Function() onLike;
@@ -14,6 +14,7 @@ class PostCard extends StatelessWidget {
   String _date(DateTime date) {
     final local = date.toLocal();
     final minutes = local.minute.toString().padLeft(2, '0');
+
     return '${local.day}/${local.month} · ${local.hour}:$minutes';
   }
 
@@ -21,10 +22,10 @@ class PostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -35,24 +36,33 @@ class PostCard extends StatelessWidget {
               Avatar(
                 url: post.authorAvatarUrl,
                 name: post.authorName,
-                size: 36,
+                size: 40,
               ),
               const SizedBox(width: 10),
-              Text(
-                '@${post.authorUsername}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  post.authorName,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '@${post.authorUsername}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      post.authorName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 _date(post.createdAt),
                 style: const TextStyle(
@@ -60,11 +70,11 @@ class PostCard extends StatelessWidget {
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 8),
             ],
           ),
-          const SizedBox(height: 8),
-          if (post.content.isNotEmpty)
+
+          if (post.content.isNotEmpty) ...[
+            const SizedBox(height: 14),
             Text(
               post.content,
               style: const TextStyle(
@@ -72,35 +82,47 @@ class PostCard extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
+          ],
+
           if (post.imageUrl != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              height: 220,
-              width: double.infinity,
-              margin: const EdgeInsets.only(right: 8),
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
+            const SizedBox(height: 12),
+
+            // Imagen completa y proporcional.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
                 color: AppColors.background,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Image.network(
-                post.imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Center(child: Icon(Icons.broken_image_outlined)),
+                child: Image.network(
+                  post.imageUrl!,
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: Icon(Icons.broken_image_outlined)),
+                    );
+                  },
+                ),
               ),
             ),
           ],
+
+          const SizedBox(height: 8),
+
           Row(
             children: [
               IconButton(
-                onPressed: () => onLike(),
+                onPressed: onLike,
                 icon: Icon(
                   post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                  color: AppColors.error,
+                  color: AppColors.primaryDark,
                 ),
               ),
-              Text('${post.likeCount}'),
+              Text(
+                '${post.likeCount}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             ],
           ),
         ],

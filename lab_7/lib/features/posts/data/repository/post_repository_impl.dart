@@ -11,11 +11,17 @@ import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 /// Fulfils PostRepository with the posts table,
 /// the phone and the post-images bucket.
 class PostRepositoryImpl implements PostRepository {
-  final SupabasePostDataSource _dataSource = SupabasePostDataSource();
+  final PostDataSource _dataSource;
+  final DevicePhotoDataSource _device;
+  final PostImageDataSource _images;
 
-  final DevicePhotoDataSource _device = DevicePhotoDataSource();
-
-  final SupabasePostImageDataSource _images = SupabasePostImageDataSource();
+  PostRepositoryImpl({
+    PostDataSource? dataSource,
+    DevicePhotoDataSource? device,
+    PostImageDataSource? images,
+  }) : _dataSource = dataSource ?? SupabasePostDataSource(),
+       _device = device ?? DevicePhotoDataSource(),
+       _images = images ?? SupabasePostImageDataSource();
 
   @override
   Future<List<Post>> fetchFeed({required int page, required int size}) {
@@ -53,7 +59,7 @@ class PostRepositoryImpl implements PostRepository {
       try {
         await _images.remove(imagePath);
       } on Exception catch (e) {
-        throw Exception(
+        throw PostImageCleanupException(
           'La publicación se eliminó, pero no se pudo borrar su imagen de '
           'Storage; puede quedar un archivo huérfano. ${_message(e)}',
         );

@@ -5,6 +5,8 @@ import 'package:moviles_auth/components/avatar.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
 
+enum _PostAction { delete }
+
 /// Card of one post: author, text, image, date and likes.
 class PostCard extends StatelessWidget {
   final Post post;
@@ -78,16 +80,25 @@ class PostCard extends StatelessWidget {
                 ),
               ),
               if (post.isMine && onDelete != null)
-                PopupMenuButton<void>(
+                PopupMenuButton<_PostAction>(
                   tooltip: 'Opciones de la publicación',
-                  onSelected: (_) => onDelete!(),
+                  onSelected: (action) {
+                    if (action == _PostAction.delete) onDelete!();
+                  },
                   itemBuilder: (context) => const [
-                    PopupMenuItem<void>(
+                    PopupMenuItem<_PostAction>(
+                      value: _PostAction.delete,
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.delete_outline, color: AppColors.error),
                           SizedBox(width: 8),
-                          Text('Eliminar publicación'),
+                          Flexible(
+                            child: Text(
+                              'Eliminar publicación',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                     ),

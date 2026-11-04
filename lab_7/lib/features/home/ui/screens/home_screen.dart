@@ -99,9 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar publicación'),
-        content: const Text(
-          'Esta acción eliminará la publicación y su imagen asociada.',
-        ),
+        content: const Text('¿Seguro que quieres eliminar esta publicación?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),

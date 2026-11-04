@@ -2,8 +2,15 @@ import 'package:moviles_auth/features/avatar/domain/entities/picked_photo.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+abstract class PostImageDataSource {
+  Future<String> upload(PickedPhoto photo);
+  Future<String> signedUrl(String path);
+  Future<Map<String, String>> signedUrls(List<String> paths);
+  Future<void> remove(String path);
+}
+
 /// The only file that talks to the post-images bucket of Supabase Storage.
-class SupabasePostImageDataSource {
+class SupabasePostImageDataSource implements PostImageDataSource {
   static const bucket = 'post-images';
 
   final SupabaseClient _client = Supabase.instance.client;
@@ -13,6 +20,7 @@ class SupabasePostImageDataSource {
     return _client.auth.currentUser!.id;
   }
 
+  @override
   Future<String> upload(PickedPhoto photo) async {
     final path = '$_uid/${_uuid.v4()}.${photo.extension}';
     final type = photo.extension == 'jpg' ? 'jpeg' : photo.extension;
@@ -35,6 +43,7 @@ class SupabasePostImageDataSource {
     }
   }
 
+  @override
   Future<String> signedUrl(String path) async {
     try {
       return await _client.storage.from(bucket).createSignedUrl(path, 3600);
@@ -43,6 +52,7 @@ class SupabasePostImageDataSource {
     }
   }
 
+  @override
   Future<Map<String, String>> signedUrls(List<String> paths) async {
     if (paths.isEmpty) return const {};
 
@@ -74,7 +84,15 @@ class SupabasePostImageDataSource {
     }
   }
 
+  @override
   Future<void> remove(String path) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('No hay una sesiÃ³n iniciada');
+    }
+    if (!path.startsWith('${user.id}/')) {
+      throw Exception('La imagen no pertenece al usuario autenticado');
+    }
     try {
       await _client.storage.from(bucket).remove([path]);
     } on StorageException catch (e) {

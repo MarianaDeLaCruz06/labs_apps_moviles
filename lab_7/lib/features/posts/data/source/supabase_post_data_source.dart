@@ -1,8 +1,17 @@
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+abstract class PostDataSource {
+  Future<List<Post>> fetchFeed({required int page, required int size});
+  Future<List<Post>> fetchMine({int limit = 3});
+  Future<void> create(String content, {String? imagePath});
+  Future<void> like(String postId);
+  Future<void> unlike(String postId);
+  Future<String?> deleteOwn(String postId);
+}
+
 /// The only file that talks to the posts and likes tables.
-class SupabasePostDataSource {
+class SupabasePostDataSource implements PostDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
   static const _columns =
@@ -15,6 +24,7 @@ class SupabasePostDataSource {
     return _client.auth.currentUser!.id;
   }
 
+  @override
   Future<List<Post>> fetchFeed({required int page, required int size}) async {
     final from = page * size;
     try {
@@ -30,6 +40,7 @@ class SupabasePostDataSource {
     }
   }
 
+  @override
   Future<List<Post>> fetchMine({int limit = 3}) async {
     try {
       final rows = await _client
@@ -45,6 +56,7 @@ class SupabasePostDataSource {
     }
   }
 
+  @override
   Future<void> create(String content, {String? imagePath}) async {
     try {
       await _client.from('posts').insert({
@@ -57,6 +69,7 @@ class SupabasePostDataSource {
     }
   }
 
+  @override
   Future<void> like(String postId) async {
     try {
       await _client.from('likes').upsert({
@@ -68,6 +81,7 @@ class SupabasePostDataSource {
     }
   }
 
+  @override
   Future<void> unlike(String postId) async {
     try {
       await _client
@@ -82,6 +96,7 @@ class SupabasePostDataSource {
 
   /// Deletes one post only when it belongs to the signed-in user.
   /// Related likes are removed by the database foreign key cascade.
+  @override
   Future<String?> deleteOwn(String postId) async {
     try {
       final row = await _client

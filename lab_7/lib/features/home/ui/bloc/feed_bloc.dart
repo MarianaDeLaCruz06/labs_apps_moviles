@@ -5,6 +5,7 @@ import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart
 import 'package:moviles_auth/features/home/ui/bloc/feed_event.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_state.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
+import 'package:moviles_auth/features/posts/domain/repository/post_repository.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/get_feed_usecase.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/get_my_posts_usecase.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/toggle_like_usecase.dart';
@@ -15,16 +16,34 @@ import 'package:moviles_auth/features/avatar/domain/usecases/remove_avatar_useca
 /// Loads the profile and the wall, toggles likes, changes the photo and signs out.
 class FeedBloc extends Bloc<FeedEvent, FeedState> {
   static const pageSize = 10;
-  final GetMyProfileUseCase _getMyProfile = GetMyProfileUseCase();
-  final SignOutUseCase _signOut = SignOutUseCase();
-  final GetFeedUseCase _getFeed = GetFeedUseCase();
-  final GetMyPostsUseCase _getMyPosts = GetMyPostsUseCase();
-  final ToggleLikeUseCase _toggleLike = ToggleLikeUseCase();
-  final ChangeAvatarUseCase _changeAvatar = ChangeAvatarUseCase();
-  final RemoveAvatarUseCase _removeAvatar = RemoveAvatarUseCase();
-  final DeletePostUseCase _deletePost = DeletePostUseCase();
+  final GetMyProfileUseCase _getMyProfile;
+  final SignOutUseCase _signOut;
+  final GetFeedUseCase _getFeed;
+  final GetMyPostsUseCase _getMyPosts;
+  final ToggleLikeUseCase _toggleLike;
+  final ChangeAvatarUseCase _changeAvatar;
+  final RemoveAvatarUseCase _removeAvatar;
+  final DeletePostUseCase _deletePost;
 
-  FeedBloc() : super(const FeedState()) {
+  FeedBloc({
+    GetMyProfileUseCase? getMyProfile,
+    SignOutUseCase? signOut,
+    GetFeedUseCase? getFeed,
+    GetMyPostsUseCase? getMyPosts,
+    ToggleLikeUseCase? toggleLike,
+    ChangeAvatarUseCase? changeAvatar,
+    RemoveAvatarUseCase? removeAvatar,
+    DeletePostUseCase? deletePost,
+    FeedState? initialState,
+  }) : _getMyProfile = getMyProfile ?? GetMyProfileUseCase(),
+       _signOut = signOut ?? SignOutUseCase(),
+       _getFeed = getFeed ?? GetFeedUseCase(),
+       _getMyPosts = getMyPosts ?? GetMyPostsUseCase(),
+       _toggleLike = toggleLike ?? ToggleLikeUseCase(),
+       _changeAvatar = changeAvatar ?? ChangeAvatarUseCase(),
+       _removeAvatar = removeAvatar ?? RemoveAvatarUseCase(),
+       _deletePost = deletePost ?? DeletePostUseCase(),
+       super(initialState ?? const FeedState()) {
     on<ProfileRequested>(_onProfileRequested);
     on<SignOutRequested>(_onSignOutRequested);
     on<FeedStarted>(_onStarted);
@@ -122,23 +141,33 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     emit(state.copyWith(status: FeedStatus.loading));
     try {
       await _deletePost(event.post);
-      final posts = state.posts
-          .where((post) => post.id != event.post.id)
-          .toList(growable: false);
-      final mine = state.myPosts
-          .where((post) => post.id != event.post.id)
-          .toList(growable: false);
       emit(
-        state.copyWith(status: FeedStatus.success, posts: posts, myPosts: mine),
+        state.copyWith(
+          status: FeedStatus.success,
+          posts: _withoutPost(state.posts, event.post.id),
+          myPosts: _withoutPost(state.myPosts, event.post.id),
+        ),
       );
-      add(FeedStarted());
+    } on PostImageCleanupException catch (e) {
+      // PostgreSQL already deleted the post. Keep it removed locally and show
+      // the Storage cleanup warning without reloading stale data over the UI.
+      emit(
+        state.copyWith(
+          status: FeedStatus.failure,
+          posts: _withoutPost(state.posts, event.post.id),
+          myPosts: _withoutPost(state.myPosts, event.post.id),
+          errorMessage: e.message,
+        ),
+      );
     } on Exception catch (e) {
       emit(
         state.copyWith(status: FeedStatus.failure, errorMessage: _message(e)),
       );
-      // The database delete may have succeeded before Storage cleanup failed.
-      add(FeedStarted());
     }
+  }
+
+  List<Post> _withoutPost(List<Post> posts, String postId) {
+    return posts.where((post) => post.id != postId).toList(growable: false);
   }
 
   Future<void> _onAvatarChangeRequested(

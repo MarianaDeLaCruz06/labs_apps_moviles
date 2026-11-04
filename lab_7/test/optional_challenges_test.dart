@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moviles_auth/features/auth/domain/entities/app_user.dart';
 import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
@@ -13,6 +12,13 @@ import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:moviles_auth/features/posts/domain/repository/post_repository.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/delete_post_usecase.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/get_feed_usecase.dart';
+import 'package:moviles_auth/features/posts/data/repository/post_repository_impl.dart';
+import 'package:moviles_auth/features/posts/data/source/supabase_post_data_source.dart';
+import 'package:moviles_auth/features/posts/data/source/supabase_post_image_data_source.dart';
+import 'package:moviles_auth/features/home/ui/bloc/feed_bloc.dart';
+import 'package:moviles_auth/features/home/ui/bloc/feed_event.dart';
+import 'package:moviles_auth/features/home/ui/bloc/feed_state.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Post _post(String id, {String? path, bool isMine = false}) => Post(
   id: id,
@@ -30,6 +36,7 @@ class _PostRepository implements PostRepository {
   List<Post> feed = [];
   List<String>? signedPaths;
   Post? deleted;
+  Object? deleteError;
   Map<String, String> urls = {};
 
   @override
@@ -45,6 +52,7 @@ class _PostRepository implements PostRepository {
   @override
   Future<String?> delete(Post post) async {
     deleted = post;
+    if (deleteError != null) throw deleteError!;
     return post.imagePath;
   }
 
@@ -64,6 +72,49 @@ class _PostRepository implements PostRepository {
   Future<void> unlike(String postId) async {}
   @override
   Future<String> uploadImage(PickedPhoto photo) async => 'path';
+}
+
+class _PostDataSource implements PostDataSource {
+  String? deletedId;
+  String? deletedImagePath;
+  Object? deleteError;
+
+  @override
+  Future<String?> deleteOwn(String postId) async {
+    deletedId = postId;
+    if (deleteError != null) throw deleteError!;
+    return deletedImagePath;
+  }
+
+  @override
+  Future<void> create(String content, {String? imagePath}) async {}
+  @override
+  Future<List<Post>> fetchFeed({required int page, required int size}) async =>
+      [];
+  @override
+  Future<List<Post>> fetchMine({int limit = 3}) async => [];
+  @override
+  Future<void> like(String postId) async {}
+  @override
+  Future<void> unlike(String postId) async {}
+}
+
+class _PostImageDataSource implements PostImageDataSource {
+  String? removedPath;
+  Object? removeError;
+
+  @override
+  Future<void> remove(String path) async {
+    removedPath = path;
+    if (removeError != null) throw removeError!;
+  }
+
+  @override
+  Future<String> signedUrl(String path) async => 'signed/$path';
+  @override
+  Future<Map<String, String>> signedUrls(List<String> paths) async => {};
+  @override
+  Future<String> upload(PickedPhoto photo) async => 'uploaded';
 }
 
 class _AuthRepository implements AuthRepository {
@@ -113,6 +164,19 @@ class _AvatarRepository implements AvatarRepository {
 }
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/shared_preferences'),
+          (call) async => call.method == 'getAll' ? <String, Object>{} : true,
+        );
+    await Supabase.initialize(
+      url: 'http://localhost',
+      publishableKey: 'test-publishable-key',
+    );
+  });
+
   test(
     'batch signing preserves order, duplicates and posts without image',
     () async {
@@ -160,6 +224,119 @@ void main() {
     final post = _post('mine', path: 'u1/photo.png', isMine: true);
     await DeletePostUseCase(posts: repository)(post);
     expect(repository.deleted, same(post));
+  });
+
+  test(
+    'repository deletes a text-only post without touching Storage',
+    () async {
+      final data = _PostDataSource();
+      final images = _PostImageDataSource();
+      final repository = PostRepositoryImpl(dataSource: data, images: images);
+
+      await repository.delete(_post('text-only', isMine: true));
+
+      expect(data.deletedId, 'text-only');
+      expect(images.removedPath, isNull);
+    },
+  );
+
+  test('repository deletes the image returned by the deleted row', () async {
+    final data = _PostDataSource()..deletedImagePath = 'u1/photo.png';
+    final images = _PostImageDataSource();
+    final repository = PostRepositoryImpl(dataSource: data, images: images);
+
+    await repository.delete(
+      _post('with-image', path: 'u1/photo.png', isMine: true),
+    );
+
+    expect(data.deletedId, 'with-image');
+    expect(images.removedPath, 'u1/photo.png');
+  });
+
+  test('Storage failure is distinct after PostgreSQL deletion', () async {
+    final data = _PostDataSource()..deletedImagePath = 'u1/photo.png';
+    final images = _PostImageDataSource()
+      ..removeError = Exception('Storage offline');
+    final repository = PostRepositoryImpl(dataSource: data, images: images);
+
+    await expectLater(
+      repository.delete(
+        _post('with-image', path: 'u1/photo.png', isMine: true),
+      ),
+      throwsA(isA<PostImageCleanupException>()),
+    );
+    expect(data.deletedId, 'with-image');
+    expect(images.removedPath, 'u1/photo.png');
+  });
+
+  test('FeedBloc removes a deleted post from feed and profile', () async {
+    final repository = _PostRepository();
+    final post = _post('mine', isMine: true);
+    final bloc = FeedBloc(
+      deletePost: DeletePostUseCase(posts: repository),
+      initialState: FeedState(
+        status: FeedStatus.success,
+        posts: [post],
+        myPosts: [post],
+      ),
+    );
+
+    bloc.add(FeedPostDeleteRequested(post));
+    final result = await bloc.stream.firstWhere(
+      (state) => state.status == FeedStatus.success && state.posts.isEmpty,
+    );
+
+    expect(result.posts, isEmpty);
+    expect(result.myPosts, isEmpty);
+    await bloc.close();
+  });
+
+  test('FeedBloc keeps post on PostgreSQL failure', () async {
+    final repository = _PostRepository()
+      ..deleteError = Exception('Database unavailable');
+    final post = _post('mine', isMine: true);
+    final bloc = FeedBloc(
+      deletePost: DeletePostUseCase(posts: repository),
+      initialState: FeedState(
+        status: FeedStatus.success,
+        posts: [post],
+        myPosts: [post],
+      ),
+    );
+
+    bloc.add(FeedPostDeleteRequested(post));
+    final result = await bloc.stream.firstWhere(
+      (state) => state.status == FeedStatus.failure,
+    );
+
+    expect(result.posts, [post]);
+    expect(result.myPosts, [post]);
+    expect(result.errorMessage, 'Database unavailable');
+    await bloc.close();
+  });
+
+  test('FeedBloc removes post but reports Storage cleanup failure', () async {
+    final repository = _PostRepository()
+      ..deleteError = const PostImageCleanupException('Archivo huÃ©rfano');
+    final post = _post('mine', path: 'u1/photo.png', isMine: true);
+    final bloc = FeedBloc(
+      deletePost: DeletePostUseCase(posts: repository),
+      initialState: FeedState(
+        status: FeedStatus.success,
+        posts: [post],
+        myPosts: [post],
+      ),
+    );
+
+    bloc.add(FeedPostDeleteRequested(post));
+    final result = await bloc.stream.firstWhere(
+      (state) => state.status == FeedStatus.failure,
+    );
+
+    expect(result.posts, isEmpty);
+    expect(result.myPosts, isEmpty);
+    expect(result.errorMessage, 'Archivo huÃ©rfano');
+    await bloc.close();
   });
 
   test('remove avatar writes NULL before deleting the owned file', () async {

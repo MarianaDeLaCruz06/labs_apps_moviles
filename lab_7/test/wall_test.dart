@@ -14,6 +14,7 @@ import 'package:moviles_auth/features/home/ui/bloc/feed_bloc.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_event.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_state.dart';
 import 'package:moviles_auth/features/home/ui/pages/feed_page.dart';
+import 'package:moviles_auth/features/home/ui/components/post_card.dart';
 import 'package:moviles_auth/features/home/ui/screens/home_screen.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 
@@ -34,6 +35,32 @@ class _FakeFeedBloc extends Bloc<FeedEvent, FeedState> implements FeedBloc {
     on<SignOutRequested>(
       (event, emit) => emit(state.copyWith(signedOut: true)),
     );
+  }
+}
+
+class _DeleteFeedBloc extends Bloc<FeedEvent, FeedState> implements FeedBloc {
+  _DeleteFeedBloc({bool fail = false})
+    : super(
+        FeedState(
+          status: FeedStatus.success,
+          profile: _profile,
+          posts: [_post('owned', owned: true)],
+          myPosts: [_post('owned', owned: true)],
+          hasMore: false,
+        ),
+      ) {
+    on<ProfileRequested>((event, emit) {});
+    on<FeedStarted>((event, emit) {});
+    on<FeedPostDeleteRequested>((event, emit) {
+      if (fail) {
+        emit(
+          state.copyWith(
+            status: FeedStatus.failure,
+            errorMessage: 'No se pudo eliminar',
+          ),
+        );
+      }
+    });
   }
 }
 
@@ -136,15 +163,17 @@ class _EventRecorder extends BlocObserver {
   }
 }
 
-Post _post(String id, {int likes = 0, bool mine = false}) => Post(
-  id: id,
-  content: 'Contenido de $id',
-  createdAt: DateTime(2026, 10, 18, 10, 5),
-  authorUsername: 'ana.dev',
-  authorName: 'Ana Gómez',
-  likeCount: likes,
-  likedByMe: mine,
-);
+Post _post(String id, {int likes = 0, bool mine = false, bool owned = false}) =>
+    Post(
+      id: id,
+      content: 'Contenido de $id',
+      createdAt: DateTime(2026, 10, 18, 10, 5),
+      authorUsername: 'ana.dev',
+      authorName: 'Ana Gómez',
+      isMine: owned,
+      likeCount: likes,
+      likedByMe: mine,
+    );
 
 const _profile = Profile(id: 'u1', username: 'ana.dev', fullName: 'Ana Gómez');
 
@@ -251,6 +280,86 @@ void main() {
     await tester.tap(find.text('Cerrar sesión'));
     await tester.pumpAndSettle();
     expect(find.text('login'), findsOneWidget);
+  });
+
+  testWidgets('PostCard only offers deletion for an owned post', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              PostCard(
+                post: _post('mine', owned: true),
+                onLike: () {},
+                onDelete: () {},
+              ),
+              PostCard(post: _post('foreign'), onLike: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Opciones de la publicación'), findsOneWidget);
+  });
+
+  testWidgets('canceling deletion dialog does not emit delete event', (
+    tester,
+  ) async {
+    final recorder = _EventRecorder();
+    Bloc.observer = recorder;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<FeedBloc>(
+          create: (_) => _DeleteFeedBloc(),
+          child: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Opciones de la publicación'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eliminar publicación'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Eliminar publicación'), findsOneWidget);
+    expect(
+      find.text('¿Seguro que quieres eliminar esta publicación?'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.events.whereType<FeedPostDeleteRequested>(), isEmpty);
+  });
+
+  testWidgets('confirming deletion emits event and failures show a SnackBar', (
+    tester,
+  ) async {
+    final recorder = _EventRecorder();
+    Bloc.observer = recorder;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<FeedBloc>(
+          create: (_) => _DeleteFeedBloc(fail: true),
+          child: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Opciones de la publicación'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eliminar publicación'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+
+    expect(recorder.events.whereType<FeedPostDeleteRequested>(), hasLength(1));
+    expect(find.text('No se pudo eliminar'), findsOneWidget);
   });
 
   testWidgets('ComposeScreen counts characters and sends the text', (

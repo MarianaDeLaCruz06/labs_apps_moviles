@@ -1,8 +1,10 @@
 import 'package:moviles_auth/features/avatar/domain/entities/picked_photo.dart';
+import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 
 /// Contract for choosing a photo and keeping it in the cloud.
 abstract class AvatarRepository {
-  Future<PickedPhoto?> pick();
+  Future<PickedPhoto?> pick({PhotoSource source = PhotoSource.gallery});
+
   Future<String> upload(PickedPhoto photo);
   Future<void> remove(String path);
 }

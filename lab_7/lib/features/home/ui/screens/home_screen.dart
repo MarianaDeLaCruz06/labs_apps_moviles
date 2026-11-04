@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_bloc.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_event.dart';
 import 'package:moviles_auth/features/home/ui/bloc/feed_state.dart';
 import 'package:moviles_auth/features/home/ui/pages/feed_page.dart';
 import 'package:moviles_auth/features/home/ui/pages/profile_page.dart';
+import 'package:moviles_auth/theme/app_theme.dart';
 
 /// Hosts FeedPage and ProfilePage behind a BottomNavigationBar.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() {
-    return _HomeScreenState();
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
     final bloc = context.read<FeedBloc>();
     bloc.add(ProfileRequested());
     bloc.add(FeedStarted());
@@ -30,27 +31,88 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openCompose() async {
     final published = await Navigator.pushNamed(context, '/compose');
+
     if (published == true && mounted) {
       context.read<FeedBloc>().add(FeedStarted());
     }
   }
 
+  Future<void> _chooseAvatarSource() async {
+    final source = await showModalBottomSheet<PhotoSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Cambiar foto de perfil',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: AppColors.primaryDark,
+                  ),
+                  title: const Text('Elegir de la galería'),
+                  subtitle: const Text('Seleccionar una foto existente'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, PhotoSource.gallery);
+                  },
+                ),
+
+                ListTile(
+                  leading: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: AppColors.primaryDark,
+                  ),
+                  title: const Text('Tomar una foto'),
+                  subtitle: const Text('Abrir la cámara del dispositivo'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, PhotoSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || source == null) return;
+
+    context.read<FeedBloc>().add(AvatarChangeRequested(source: source));
+  }
+
   Widget _page(FeedState state) {
     final bloc = context.read<FeedBloc>();
+
     if (_index == 1) {
       final profile = state.profile;
+
       if (profile == null) {
         return const Center(child: CircularProgressIndicator());
       }
+
       return ProfilePage(
         profile: profile,
         posts: state.myPosts,
         isUploading: state.avatarStatus == AvatarStatus.uploading,
-        onChangePhoto: () => bloc.add(AvatarChangeRequested()),
+        onChangePhoto: _chooseAvatarSource,
         onLike: (post) => bloc.add(FeedLikeToggled(post)),
         onSignOut: () => bloc.add(SignOutRequested()),
       );
     }
+
     return FeedPage(
       posts: state.posts,
       hasMore: state.hasMore,
@@ -93,13 +155,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         floatingActionButton: _index == 0
             ? FloatingActionButton(
-                onPressed: () => _openCompose(),
+                onPressed: _openCompose,
                 child: const Icon(Icons.edit),
               )
             : null,
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _index,
-          onTap: (index) => setState(() => _index = index),
+          onTap: (index) {
+            setState(() => _index = index);
+          },
+          selectedItemColor: AppColors.primaryDark,
+          unselectedItemColor: AppColors.textSecondary,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),

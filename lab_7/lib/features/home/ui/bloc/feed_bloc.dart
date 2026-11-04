@@ -106,7 +106,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     emit(state.copyWith(avatarStatus: AvatarStatus.uploading));
 
     try {
-      final profile = await _changeAvatar();
+      final profile = await _changeAvatar(source: event.source);
 
       if (profile == null) {
         emit(state.copyWith(avatarStatus: AvatarStatus.idle));

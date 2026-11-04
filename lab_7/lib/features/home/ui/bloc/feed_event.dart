@@ -1,4 +1,5 @@
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
+import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 
 /// Something the home screen asks the FeedBloc to do.
 abstract class FeedEvent {}
@@ -48,9 +49,14 @@ class FeedLikeToggled extends FeedEvent {
 }
 
 /// The user wants a new profile photo from the gallery.
+/// El usuario quiere cambiar su fotografía de perfil.
 class AvatarChangeRequested extends FeedEvent {
+  final PhotoSource source;
+
+  AvatarChangeRequested({this.source = PhotoSource.gallery});
+
   @override
   String toString() {
-    return 'AvatarChangeRequested()';
+    return 'AvatarChangeRequested(source: $source)';
   }
 }

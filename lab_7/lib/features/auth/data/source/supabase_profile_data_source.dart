@@ -1,4 +1,3 @@
-
 import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,11 +19,7 @@ class SupabaseProfileDataSource {
 
   Future<Profile> getProfile(String id) async {
     try {
-      final row = await _client
-          .from('profiles')
-          .select()
-          .eq('id', id)
-          .single();
+      final row = await _client.from('profiles').select().eq('id', id).single();
 
       final path = row['avatar_path'] as String?;
 
@@ -42,15 +37,16 @@ class SupabaseProfileDataSource {
     }
   }
 
-  Future<void> updateAvatarPath(String id, String path) async {
+  Future<void> updateAvatarPath(String id, String? path) async {
     try {
       await _client
           .from('profiles')
           .update({'avatar_path': path})
-          .eq('id', id);
+          .eq('id', id)
+          .select('id')
+          .single();
     } on PostgrestException catch (e) {
       throw Exception(e.message);
     }
   }
 }
- 

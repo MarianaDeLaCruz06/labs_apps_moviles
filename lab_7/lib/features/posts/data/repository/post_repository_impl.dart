@@ -6,6 +6,7 @@ import 'package:moviles_auth/features/posts/data/source/supabase_post_image_data
 
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:moviles_auth/features/posts/domain/repository/post_repository.dart';
+import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 
 /// Fulfils PostRepository with the posts table,
 /// the phone and the post-images bucket.
@@ -42,8 +43,34 @@ class PostRepositoryImpl implements PostRepository {
   }
 
   @override
-  Future<PickedPhoto?> pickImage() {
-    return _device.pick();
+  Future<String?> delete(Post post) async {
+    if (!post.isMine) {
+      throw Exception('Solo puedes eliminar tus propias publicaciones');
+    }
+
+    final imagePath = await _dataSource.deleteOwn(post.id);
+    if (imagePath != null) {
+      try {
+        await _images.remove(imagePath);
+      } on Exception catch (e) {
+        throw Exception(
+          'La publicación se eliminó, pero no se pudo borrar su imagen de '
+          'Storage; puede quedar un archivo huérfano. ${_message(e)}',
+        );
+      }
+    }
+    return imagePath;
+  }
+
+  String _message(Exception error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  @override
+  Future<PickedPhoto?> pickImage({
+    PhotoSource source = PhotoSource.gallery,
+  }) async {
+    return _device.pick(source: source);
   }
 
   @override
@@ -54,5 +81,10 @@ class PostRepositoryImpl implements PostRepository {
   @override
   Future<String> imageUrl(String path) {
     return _images.signedUrl(path);
+  }
+
+  @override
+  Future<Map<String, String>> imageUrls(List<String> paths) {
+    return _images.signedUrls(paths);
   }
 }

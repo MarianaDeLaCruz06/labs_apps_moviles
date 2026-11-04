@@ -8,7 +8,9 @@ import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/get_feed_usecase.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/get_my_posts_usecase.dart';
 import 'package:moviles_auth/features/posts/domain/usecases/toggle_like_usecase.dart';
+import 'package:moviles_auth/features/posts/domain/usecases/delete_post_usecase.dart';
 import 'package:moviles_auth/features/avatar/domain/usecases/change_avatar_usecase.dart';
+import 'package:moviles_auth/features/avatar/domain/usecases/remove_avatar_usecase.dart';
 
 /// Loads the profile and the wall, toggles likes, changes the photo and signs out.
 class FeedBloc extends Bloc<FeedEvent, FeedState> {
@@ -19,6 +21,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final GetMyPostsUseCase _getMyPosts = GetMyPostsUseCase();
   final ToggleLikeUseCase _toggleLike = ToggleLikeUseCase();
   final ChangeAvatarUseCase _changeAvatar = ChangeAvatarUseCase();
+  final RemoveAvatarUseCase _removeAvatar = RemoveAvatarUseCase();
+  final DeletePostUseCase _deletePost = DeletePostUseCase();
 
   FeedBloc() : super(const FeedState()) {
     on<ProfileRequested>(_onProfileRequested);
@@ -26,7 +30,9 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     on<FeedStarted>(_onStarted);
     on<FeedMoreRequested>(_onMoreRequested);
     on<FeedLikeToggled>(_onLikeToggled);
+    on<FeedPostDeleteRequested>(_onPostDeleteRequested);
     on<AvatarChangeRequested>(_onAvatarChangeRequested);
+    on<AvatarRemoveRequested>(_onAvatarRemoveRequested);
   }
 
   String _message(Exception e) {
@@ -99,6 +105,42 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     }
   }
 
+  Future<void> _onPostDeleteRequested(
+    FeedPostDeleteRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    if (!event.post.isMine) {
+      emit(
+        state.copyWith(
+          status: FeedStatus.failure,
+          errorMessage: 'Solo puedes eliminar tus propias publicaciones',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(status: FeedStatus.loading));
+    try {
+      await _deletePost(event.post);
+      final posts = state.posts
+          .where((post) => post.id != event.post.id)
+          .toList(growable: false);
+      final mine = state.myPosts
+          .where((post) => post.id != event.post.id)
+          .toList(growable: false);
+      emit(
+        state.copyWith(status: FeedStatus.success, posts: posts, myPosts: mine),
+      );
+      add(FeedStarted());
+    } on Exception catch (e) {
+      emit(
+        state.copyWith(status: FeedStatus.failure, errorMessage: _message(e)),
+      );
+      // The database delete may have succeeded before Storage cleanup failed.
+      add(FeedStarted());
+    }
+  }
+
   Future<void> _onAvatarChangeRequested(
     AvatarChangeRequested event,
     Emitter<FeedState> emit,
@@ -150,5 +192,31 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   ) async {
     await _signOut();
     emit(state.copyWith(signedOut: true));
+  }
+
+  Future<void> _onAvatarRemoveRequested(
+    AvatarRemoveRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    emit(state.copyWith(avatarStatus: AvatarStatus.uploading));
+
+    try {
+      final profile = await _removeAvatar();
+
+      emit(state.copyWith(profile: profile, avatarStatus: AvatarStatus.idle));
+
+      // Refresh the feed so avatars update everywhere.
+      add(FeedStarted());
+    } on Exception catch (e) {
+      emit(
+        state.copyWith(
+          avatarStatus: AvatarStatus.failure,
+          errorMessage: _message(e),
+        ),
+      );
+      // The database may already be unlinked if Storage cleanup failed.
+      add(ProfileRequested());
+      add(FeedStarted());
+    }
   }
 }

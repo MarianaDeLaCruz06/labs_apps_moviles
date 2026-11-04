@@ -48,6 +48,16 @@ class FeedLikeToggled extends FeedEvent {
   }
 }
 
+/// The user confirmed deletion of one of their posts.
+class FeedPostDeleteRequested extends FeedEvent {
+  final Post post;
+
+  FeedPostDeleteRequested(this.post);
+
+  @override
+  String toString() => 'FeedPostDeleteRequested(${post.id})';
+}
+
 /// The user wants a new profile photo from the gallery.
 /// El usuario quiere cambiar su fotografía de perfil.
 class AvatarChangeRequested extends FeedEvent {
@@ -59,4 +69,10 @@ class AvatarChangeRequested extends FeedEvent {
   String toString() {
     return 'AvatarChangeRequested(source: $source)';
   }
+}
+
+/// The user wants to remove the current profile photo.
+class AvatarRemoveRequested extends FeedEvent {
+  @override
+  String toString() => 'AvatarRemoveRequested()';
 }

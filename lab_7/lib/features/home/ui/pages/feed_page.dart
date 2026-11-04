@@ -11,6 +11,7 @@ class FeedPage extends StatelessWidget {
   final bool isLoading;
   final Function() onLoadMore;
   final Function(Post) onLike;
+  final Function(Post) onDelete;
 
   const FeedPage({
     super.key,
@@ -19,6 +20,7 @@ class FeedPage extends StatelessWidget {
     required this.isLoading,
     required this.onLoadMore,
     required this.onLike,
+    required this.onDelete,
   });
 
   Widget _footer() {
@@ -53,7 +55,11 @@ class FeedPage extends StatelessWidget {
       itemBuilder: (context, index) {
         if (index == posts.length) return _footer();
         final post = posts[index];
-        return PostCard(post: post, onLike: () => onLike(post));
+        return PostCard(
+          post: post,
+          onLike: () => onLike(post),
+          onDelete: post.isMine ? () => onDelete(post) : null,
+        );
       },
     );
   }

@@ -15,6 +15,8 @@ class ProfilePage extends StatelessWidget {
   final Function() onChangePhoto;
   final Function(Post) onLike;
   final Function() onSignOut;
+  final VoidCallback onRemovePhoto;
+  final Function(Post) onDelete;
 
   const ProfilePage({
     super.key,
@@ -24,6 +26,8 @@ class ProfilePage extends StatelessWidget {
     required this.onChangePhoto,
     required this.onLike,
     required this.onSignOut,
+    required this.onRemovePhoto,
+    required this.onDelete,
   });
 
   Widget _photo() {
@@ -33,6 +37,7 @@ class ProfilePage extends StatelessWidget {
       child: Stack(
         children: [
           Avatar(url: profile.avatarUrl, name: profile.fullName, size: 104),
+
           if (isUploading)
             Container(
               width: 104,
@@ -44,11 +49,12 @@ class ProfilePage extends StatelessWidget {
               ),
               child: const CircularProgressIndicator(color: AppColors.surface),
             ),
+
           Positioned(
             right: 0,
             bottom: 0,
             child: IconButton.filled(
-              onPressed: isUploading ? null : () => onChangePhoto(),
+              onPressed: isUploading ? null : onChangePhoto,
               icon: const Icon(Icons.photo_camera_outlined),
               tooltip: 'Cambiar foto',
             ),
@@ -66,7 +72,9 @@ class ProfilePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(child: _photo()),
+
           const SizedBox(height: 16),
+
           Text(
             profile.fullName,
             textAlign: TextAlign.center,
@@ -76,13 +84,31 @@ class ProfilePage extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
+
           const SizedBox(height: 4),
+
           Text(
             '@${profile.username}',
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textSecondary),
           ),
+
+          // RETO 3: Quitar la fotografía del perfil.
+          if (profile.avatarPath != null) ...[
+            const SizedBox(height: 12),
+
+            Center(
+              child: TextButton.icon(
+                onPressed: isUploading ? null : onRemovePhoto,
+                icon: const Icon(Icons.delete_outline, size: 19),
+                label: const Text('Quitar foto de perfil'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 32),
+
           const Text(
             'Tus últimos posts',
             style: TextStyle(
@@ -90,16 +116,25 @@ class ProfilePage extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
+
           const SizedBox(height: 12),
+
           if (posts.isEmpty)
             const Text(
               'Aún no has publicado',
               style: TextStyle(color: AppColors.textSecondary),
             ),
+
           for (final post in posts)
-            PostCard(post: post, onLike: () => onLike(post)),
+            PostCard(
+              post: post,
+              onLike: () => onLike(post),
+              onDelete: () => onDelete(post),
+            ),
+
           const SizedBox(height: 24),
-          PrimaryButton(label: 'Cerrar sesión', onPressed: () => onSignOut()),
+
+          PrimaryButton(label: 'Cerrar sesión', onPressed: onSignOut),
         ],
       ),
     );

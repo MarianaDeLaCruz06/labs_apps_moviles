@@ -1,4 +1,3 @@
-
 import 'package:moviles_auth/features/avatar/domain/entities/picked_photo.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -16,19 +15,19 @@ class SupabaseAvatarDataSource {
 
   Future<String> upload(PickedPhoto photo) async {
     final path = '$_uid/${_uuid.v4()}.${photo.extension}';
-    final type = photo.extension == 'jpg'
-        ? 'jpeg'
-        : photo.extension;
+    final type = photo.extension == 'jpg' ? 'jpeg' : photo.extension;
 
     try {
-      await _client.storage.from(bucket).uploadBinary(
-        path,
-        photo.bytes,
-        fileOptions: FileOptions(
-          contentType: 'image/$type',
-          cacheControl: '31536000',
-        ),
-      );
+      await _client.storage
+          .from(bucket)
+          .uploadBinary(
+            path,
+            photo.bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$type',
+              cacheControl: '31536000',
+            ),
+          );
 
       return path;
     } on StorageException catch (e) {

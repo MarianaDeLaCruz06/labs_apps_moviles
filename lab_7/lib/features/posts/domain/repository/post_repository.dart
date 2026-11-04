@@ -1,5 +1,6 @@
 import 'package:moviles_auth/features/avatar/domain/entities/picked_photo.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
+import 'package:moviles_auth/features/avatar/domain/entities/photo_source.dart';
 
 /// Contract of everything the wall can ask about posts, likes and their images.
 abstract class PostRepository {
@@ -8,7 +9,9 @@ abstract class PostRepository {
   Future<void> create(String content, {String? imagePath});
   Future<void> like(String postId);
   Future<void> unlike(String postId);
-  Future<PickedPhoto?> pickImage();
+  Future<String?> delete(Post post);
+  Future<PickedPhoto?> pickImage({PhotoSource source = PhotoSource.gallery});
   Future<String> uploadImage(PickedPhoto photo);
   Future<String> imageUrl(String path);
+  Future<Map<String, String>> imageUrls(List<String> paths);
 }

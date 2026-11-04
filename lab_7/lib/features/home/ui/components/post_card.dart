@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:moviles_auth/components/avatar.dart';
 import 'package:moviles_auth/features/posts/domain/entities/post.dart';
@@ -8,8 +9,14 @@ import 'package:moviles_auth/theme/app_theme.dart';
 class PostCard extends StatelessWidget {
   final Post post;
   final Function() onLike;
+  final VoidCallback? onDelete;
 
-  const PostCard({super.key, required this.post, required this.onLike});
+  const PostCard({
+    super.key,
+    required this.post,
+    required this.onLike,
+    this.onDelete,
+  });
 
   String _date(DateTime date) {
     final local = date.toLocal();
@@ -70,6 +77,22 @@ class PostCard extends StatelessWidget {
                   color: AppColors.textSecondary,
                 ),
               ),
+              if (post.isMine && onDelete != null)
+                PopupMenuButton<void>(
+                  tooltip: 'Opciones de la publicación',
+                  onSelected: (_) => onDelete!(),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<void>(
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, color: AppColors.error),
+                          SizedBox(width: 8),
+                          Text('Eliminar publicación'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
 
@@ -93,16 +116,18 @@ class PostCard extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 color: AppColors.background,
-                child: Image.network(
-                  post.imageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: post.imageUrl!,
                   width: double.infinity,
                   fit: BoxFit.fitWidth,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: Icon(Icons.broken_image_outlined)),
-                    );
-                  },
+                  placeholder: (context, url) => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: Icon(Icons.broken_image_outlined)),
+                  ),
                 ),
               ),
             ),

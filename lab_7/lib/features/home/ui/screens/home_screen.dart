@@ -8,6 +8,7 @@ import 'package:moviles_auth/features/home/ui/bloc/feed_state.dart';
 import 'package:moviles_auth/features/home/ui/pages/feed_page.dart';
 import 'package:moviles_auth/features/home/ui/pages/profile_page.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
+import 'package:moviles_auth/features/posts/domain/entities/post.dart';
 
 /// Hosts FeedPage and ProfilePage behind a BottomNavigationBar.
 class HomeScreen extends StatefulWidget {
@@ -93,6 +94,30 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<FeedBloc>().add(AvatarChangeRequested(source: source));
   }
 
+  Future<void> _confirmDelete(Post post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar publicación'),
+        content: const Text(
+          'Esta acción eliminará la publicación y su imagen asociada.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    context.read<FeedBloc>().add(FeedPostDeleteRequested(post));
+  }
+
   Widget _page(FeedState state) {
     final bloc = context.read<FeedBloc>();
 
@@ -110,6 +135,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onChangePhoto: _chooseAvatarSource,
         onLike: (post) => bloc.add(FeedLikeToggled(post)),
         onSignOut: () => bloc.add(SignOutRequested()),
+        onRemovePhoto: () => bloc.add(AvatarRemoveRequested()),
+        onDelete: _confirmDelete,
       );
     }
 
@@ -119,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
       isLoading: state.status == FeedStatus.loading,
       onLoadMore: () => bloc.add(FeedMoreRequested()),
       onLike: (post) => bloc.add(FeedLikeToggled(post)),
+      onDelete: _confirmDelete,
     );
   }
 
@@ -134,6 +162,16 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               '/login',
               (route) => false,
+            );
+          },
+        ),
+        BlocListener<FeedBloc, FeedState>(
+          listenWhen: (previous, current) =>
+              previous.status != current.status &&
+              current.status == FeedStatus.failure,
+          listener: (context, state) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage ?? 'Algo falló')),
             );
           },
         ),

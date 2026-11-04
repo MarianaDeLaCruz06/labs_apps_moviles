@@ -6,7 +6,7 @@ class SupabasePostDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
   static const _columns =
-      'id, content, image_path, created_at, '
+      'id, profile_id, content, image_path, created_at, '
       'author:profiles!profile_id(username, full_name, avatar_path), '
       'likes(count), '
       'my_like:likes(profile_id)';
@@ -80,6 +80,23 @@ class SupabasePostDataSource {
     }
   }
 
+  /// Deletes one post only when it belongs to the signed-in user.
+  /// Related likes are removed by the database foreign key cascade.
+  Future<String?> deleteOwn(String postId) async {
+    try {
+      final row = await _client
+          .from('posts')
+          .delete()
+          .eq('id', postId)
+          .eq('profile_id', _uid)
+          .select('image_path')
+          .single();
+      return row['image_path'] as String?;
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    }
+  }
+
   Post _toPost(Map<String, dynamic> row) {
     final author = row['author'] as Map<String, dynamic>;
     final avatarPath = author['avatar_path'] as String?;
@@ -90,6 +107,7 @@ class SupabasePostDataSource {
       createdAt: DateTime.parse(row['created_at'] as String),
       authorUsername: author['username'] as String,
       authorName: author['full_name'] as String,
+      isMine: row['profile_id'] == _uid,
       authorAvatarUrl: avatarPath == null
           ? null
           : _client.storage.from('avatars').getPublicUrl(avatarPath),

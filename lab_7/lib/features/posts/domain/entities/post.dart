@@ -5,6 +5,7 @@ class Post {
   final DateTime createdAt;
   final String authorUsername;
   final String authorName;
+  final bool isMine;
   final String? authorAvatarUrl;
   final String? imagePath;
   final String? imageUrl;
@@ -17,6 +18,7 @@ class Post {
     required this.createdAt,
     required this.authorUsername,
     required this.authorName,
+    this.isMine = false,
     this.authorAvatarUrl,
     this.imagePath,
     this.imageUrl,
@@ -31,6 +33,7 @@ class Post {
       createdAt: createdAt,
       authorUsername: authorUsername,
       authorName: authorName,
+      isMine: isMine,
       authorAvatarUrl: authorAvatarUrl,
       imagePath: imagePath,
       imageUrl: imageUrl ?? this.imageUrl,

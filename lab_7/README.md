@@ -1,158 +1,71 @@
 # Laboratorio 7 · Fotos en el muro
 
-**Desarrollo de Aplicaciones Móviles - Flutter y Supabase**
+Aplicación Flutter con arquitectura por capas, Flutter BLoC y Supabase. Extiende el Laboratorio 6 con fotos de perfil, publicaciones con imágenes y los seis retos opcionales del Laboratorio 7.
 
-## Descripción
+## Ejecución
 
-Este proyecto corresponde al Laboratorio 7, desarrollado a partir del proyecto base proporcionado por el profesor, que incluye las funcionalidades del Laboratorio 6 y la interfaz inicial para el manejo de fotografías.
-
-El objetivo es integrar la selección, carga, almacenamiento y visualización de imágenes en una aplicación social utilizando Flutter, BLoC y Supabase.
-
-El laboratorio se divide en dos partes:
-
-- **Parte 1 - Foto de perfil:** permite seleccionar una fotografía desde la galería, subirla a Supabase Storage, actualizar el perfil y mostrarla junto a las publicaciones del usuario.
-- **Parte 2 - Publicaciones con imágenes:** permite adjuntar una fotografía, visualizarla antes de publicar y mostrarla en el muro junto al texto de la publicación.
-
-## Funcionalidades implementadas
-
-### Autenticación y perfiles
-
-- Registro de usuarios mediante Supabase Auth.
-- Inicio y cierre de sesión.
-- Consulta de la información del perfil.
-- Selección y actualización de la fotografía de perfil.
-- Visualización de la fotografía del autor en sus publicaciones.
-- Visualización de la inicial del nombre cuando no existe una fotografía.
-
-### Publicaciones
-
-- Creación de publicaciones con texto.
-- Creación de publicaciones con imágenes.
-- Creación de publicaciones únicamente con imágenes.
-- Vista previa de la fotografía antes de publicar.
-- Opción para quitar una fotografía seleccionada.
-- Muro de publicaciones con paginación.
-- Visualización de publicaciones recientes en el perfil.
-- Sistema de me gusta.
-- Validación del máximo de 280 caracteres.
-
-### Almacenamiento de imágenes
-
-Se utilizan dos buckets de Supabase Storage:
-
-| Bucket | Acceso | Uso |
-|---|---|---|
-| `avatars` | Público | Fotografías de perfil |
-| `post-images` | Privado | Fotografías de publicaciones |
-
-Ambos buckets tienen un límite de 2 MiB por archivo y admiten JPEG, PNG y WebP.
-
-Las fotografías de perfil se muestran mediante URLs públicas. Las imágenes de las publicaciones se consultan mediante URLs firmadas con una duración de 3600 segundos.
-
-## Tecnologías utilizadas
-
-- Flutter y Dart.
-- Supabase Authentication.
-- Supabase Database (PostgreSQL).
-- Supabase Storage.
-- Flutter BLoC para la gestión de eventos y estados.
-- `image_picker` para seleccionar fotografías.
-- `uuid` para generar nombres únicos de archivos.
-
-## Arquitectura
-
-La aplicación mantiene una separación de responsabilidades mediante las capas de presentación, dominio y datos.
-
-**Presentación:** pantallas, componentes, eventos, estados y BLoC.
-
-**Dominio:** entidades, contratos de repositorios y casos de uso.
-
-**Datos:** implementaciones de repositorios y fuentes de datos que se comunican con Supabase y la galería del dispositivo.
-
-Los casos de uso coordinan las operaciones sin depender directamente de los widgets de Flutter.
-
-## Configuración de Supabase
-
-La aplicación utiliza el proyecto de Supabase configurado para los laboratorios.
-
-Los valores de conexión se encuentran en `lib/main.dart`:
-
-- Project URL.
-- Publishable key.
-
-La publishable key es una clave pública de cliente. No se requiere ninguna clave `service_role` ni clave secreta para ejecutar la aplicación.
-
-La base de datos debe contener las tablas:
-
-- `profiles`
-- `posts`
-- `likes`
-
-Además de las columnas `avatar_path` en `profiles` e `image_path` en `posts`.
-
-Las políticas de Row Level Security (RLS) y Storage deben permitir las operaciones correspondientes a los usuarios autenticados.
-
-Las migraciones SQL del laboratorio se encuentran en `supabase/migrations/`. Para reconstruir la base de datos en otro proyecto también se necesita el esquema previo de los laboratorios 5 y 6 y sus políticas correspondientes.
-
-## Cómo ejecutar la aplicación
-
-### Requisitos
-
-- Flutter SDK instalado.
-- Dart SDK.
-- Visual Studio Code o un entorno compatible con Flutter.
-- Google Chrome o un emulador Android.
-- Conexión a Internet.
-- Acceso al proyecto Supabase configurado.
-
-### Ejecución
-
-Desde la raíz del repositorio:
+Requisitos: Flutter compatible con Dart 3.12, Chrome o un dispositivo/emulador compatible y conexión al proyecto Supabase configurado.
 
 ```bash
-cd lab_7
 flutter pub get
 flutter analyze
+flutter test
 flutter run -d chrome
 ```
 
-Para ejecutar la aplicación en Android, iniciar un emulador y consultar los dispositivos disponibles:
+Para usar cámara en Android, ejecute `flutter devices` y después `flutter run -d <device-id>`. El navegador puede solicitar permisos y su soporte depende de la cámara y de la configuración del sitio.
 
-```bash
-flutter devices
-flutter run
-```
+## Dependencias principales
 
-Seleccionar el dispositivo Android correspondiente.
+- `flutter_bloc`: eventos y estados de autenticación, composer y muro.
+- `supabase_flutter`: Auth, PostgreSQL y Storage.
+- `image_picker`: galería y cámara (solo en la capa de datos).
+- `uuid`: nombres únicos para objetos de Storage.
+- `cached_network_image`: carga, caché, indicadores y errores de imágenes remotas.
 
-No es necesario ejecutar `supabase init` para utilizar el proyecto existente, ya que la configuración se encuentra incluida en la carpeta `supabase/`.
+## Supabase
 
-## Pruebas funcionales
+La URL y la publishable key pública están en `lib/main.dart`. La aplicación no necesita ni debe usar una clave `service_role`. El esquema requiere `profiles`, `posts`, `likes`, `profiles.avatar_path` y `posts.image_path`, además de RLS habilitado.
 
-El flujo principal permite:
+| Bucket | Acceso | Límite | MIME |
+|---|---|---:|---|
+| `avatars` | público | 2 MiB | JPEG, PNG, WebP |
+| `post-images` | privado | 2 MiB | JPEG, PNG, WebP |
 
-1. Registrar un usuario o iniciar sesión.
-2. Consultar el perfil.
-3. Seleccionar y subir una fotografía de perfil.
-4. Visualizar la fotografía actualizada.
-5. Crear una publicación con texto e imagen.
-6. Crear una publicación únicamente con imagen.
-7. Consultar el muro y las publicaciones del perfil.
-8. Dar y quitar me gusta.
-9. Cerrar sesión.
+Los objetos usan la ruta `<uuid-del-usuario>/<archivo>`. Las políticas de Storage restringen `INSERT`, `UPDATE` y `DELETE` a esa carpeta. Los usuarios autenticados pueden leer `post-images` para solicitar URLs firmadas. Las migraciones están en `supabase/migrations`; el esquema previo de los laboratorios 5 y 6 sigue siendo necesario al reconstruir un proyecto desde cero.
 
-## Consideraciones
+## Funcionalidades principales
 
-- La aplicación necesita conectarse a un proyecto Supabase activo.
-- Las imágenes de los posts se almacenan en un bucket privado y requieren URLs firmadas para su visualización.
-- Los archivos almacenados en Supabase no forman parte del repositorio Git.
-- La eliminación de una publicación de la base de datos no elimina automáticamente su imagen de Storage.
-- La aplicación conserva la arquitectura y las funcionalidades solicitadas en el Laboratorio 7.
+- Registro, inicio y cierre de sesión, perfil y muro paginado.
+- Likes y publicaciones de hasta 280 caracteres.
+- Avatar desde galería o cámara, indicador de carga, reemplazo seguro e inicial como fallback.
+- Posts solo con texto, solo con imagen o con ambos.
+- Vista previa proporcional, cancelación y eliminación de la selección antes de publicar.
+- Carga de la imagen antes de insertar el post.
+- Imágenes privadas del muro mediante URLs firmadas por 3600 segundos.
+- Visualización proporcional de las fotos del muro, sin alto rígido ni recorte `BoxFit.cover`.
 
-## Proyecto base
+## Retos opcionales
 
-Laboratorio 7 proporcionado por el profesor:
+1. **Propiedad de Storage:** cada cuenta escribe, actualiza y elimina únicamente dentro de su UUID.
+2. **Galería o cámara:** `PhotoSource` permanece en dominio y su conversión a `ImageSource` ocurre en `DevicePhotoDataSource`. Cerrar el selector no cambia el estado.
+3. **Quitar avatar:** primero escribe `profiles.avatar_path = NULL`, confirma la fila y luego elimina el objeto propio. Perfil y muro se recargan.
+4. **Caché:** avatares y posts usan `CachedNetworkImage` con progreso y fallback.
+5. **Eliminar posts:** la opción solo aparece en posts propios, requiere confirmación, elimina primero la fila y después su imagen, y refresca muro y perfil.
+6. **Firma en lote:** cada página agrupa las rutas y usa `createSignedUrlsResult(paths, 3600)` en una sola petición; conserva orden, duplicados y posts sin imagen.
 
-https://github.com/Domiciano/Apps262Lab7
+## Caché y privacidad
 
-El desarrollo completa las funcionalidades propuestas en el laboratorio y contiene ajustes visuales en las pantallas de autenticación, perfil y publicaciones.
+Los avatares tienen URLs públicas estables y se benefician directamente de la caché. Las imágenes privadas usan como clave predeterminada la URL firmada completa. Al renovarse la firma puede cambiar la URL y producir otra entrada de caché; no se usa una clave estable basada en la ruta porque podría reutilizar bytes privados entre sesiones. Una URL expirada puede seguir mostrando bytes ya almacenados localmente bajo esa URL exacta, pero otra sesión no recibe esa clave desde la aplicación.
+
+En Android, `cached_network_image` usa el gestor de caché del dispositivo. En Flutter Web el comportamiento depende principalmente de la caché HTTP del navegador y ofrece menos control persistente; además deben respetarse CORS y la expiración de la URL firmada.
+
+## Eliminaciones y consistencia
+
+PostgreSQL y Storage no comparten una transacción. Para evitar referencias visibles a archivos borrados, primero se desvincula/elimina la fila y después se borra el objeto. Si el segundo paso falla, la aplicación informa que puede quedar un archivo huérfano y recarga los datos. Nunca se intenta borrar una ruta de avatar ajena y RLS vuelve a validar la propiedad en el servidor. La FK de `likes` del esquema base debe usar `ON DELETE CASCADE` para que al eliminar un post desaparezcan sus relaciones.
+
+## Pruebas
+
+`test/wall_test.dart` cubre entidades, estados y widgets principales. `test/optional_challenges_test.dart` cubre la asignación de firmas en lote, orden, duplicados, posts sin imagen, rechazo de borrado ajeno y escritura de `NULL` antes de borrar un avatar.
+
+Las pruebas automatizadas no sustituyen una sesión real: galería/cámara, permisos del dispositivo, límites efectivos de Storage, RLS entre dos cuentas y limpieza física de archivos deben verificarse contra Supabase sin eliminar datos existentes.

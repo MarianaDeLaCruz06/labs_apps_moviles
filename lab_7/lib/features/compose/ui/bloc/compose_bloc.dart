@@ -25,7 +25,7 @@ class ComposeBloc extends Bloc<ComposeEvent, ComposeState> {
     Emitter<ComposeState> emit,
   ) async {
     try {
-      final photo = await _pickImage();
+      final photo = await _pickImage(source: event.source);
 
       // Si cancela la galería, no cambia nada.
       if (photo == null) return;
